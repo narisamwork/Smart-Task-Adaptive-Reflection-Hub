@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Smart Task & Adaptive Reflection Hub</title>
+
+<!-- Bootstrap 5 + ฟอนต์ภาษาไทยอ่านง่าย -->
+<style>
+  /* CSS ภายในไฟล์แทน Bootstrap CDN: ครอบคลุมเฉพาะคลาสที่หน้านี้ใช้ */
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;line-height:1.5}
+  h1,h2,p{margin-top:0}
+  button,input,select,textarea{font:inherit}
+  .d-flex{display:flex}.d-none{display:none!important}
+  .justify-content-between{justify-content:space-between}
+  .align-items-center{align-items:center}.align-items-start{align-items:flex-start}
+  .gap-2{gap:.5rem}.w-100{width:100%}.text-center{text-align:center}
+  .text-secondary{color:#66757a}
+  .mb-0{margin-bottom:0}.mb-2{margin-bottom:.5rem}.mb-3{margin-bottom:1rem}.mb-4{margin-bottom:1.5rem}
+  .mt-2{margin-top:.5rem}.mt-3{margin-top:1rem}.py-4{padding-top:1.5rem;padding-bottom:1.5rem}.ms-1{margin-left:.25rem}
+  .form-label{display:block;margin-bottom:.4rem}
+  .form-control,.form-select{display:block;width:100%;padding:.5rem .9rem;border:1px solid #cfd6d4;background:#fff;color:inherit}
+  .form-control.is-invalid{border-color:#c0392b;background:#fff5f4}
+  .invalid-feedback{display:none;color:#c0392b;margin-top:.25rem}
+  .is-invalid~.invalid-feedback{display:block}
+  .alert{padding:.9rem 1rem;border:1px solid;border-radius:12px}
+  .alert-danger{background:#fdecea;border-color:#f5c2bd;color:#8e2a20}
+  .alert-warning{background:#fff4d6;border-color:#f0d58a;color:#7a5600}
+  .alert-success{background:#e6f4ec;border-color:#b9dcc6;color:#1b4d32}
+  .btn{padding:.35rem .8rem;border-radius:10px;cursor:pointer}
+  .btn-sm{font-size:.9rem}
+  .btn-outline-secondary{border:1px solid #66757a;color:#66757a;background:#fff}
+  button{cursor:pointer}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ===== 1) Design tokens (Minimalist) ===== */
+  :root {
+    --bg: #f6f7f5;
+    --ink: #1f2a2e;
+    --muted: #66757a;
+    --line: #dfe4e2;
+    --card: #ffffff;
+    --accent: #2f6f6a;
+    --danger: #c0392b;
+  }
+  body {
+    font-family: 'Noto Sans Thai', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 1.05rem;           /* ตัวหนังสือใหญ่ อ่านง่ายบนมือถือ */
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));         /* เว้นที่ให้แถบเมนูล่าง */
+  }
+  .app { max-width: 640px; margin: 0 auto; padding: 0 16px; }
+  header.app-head { padding: 28px 0 8px; }
+  header.app-head h1 { font-size: 1.5rem; font-weight: 700; margin: 0; }
+  header.app-head p { color: var(--muted); margin: 4px 0 0; }
+
+  section.block {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px;
+    margin-top: 18px;
+    scroll-margin-top: 12px;
+  }
+  section.block h2 { font-size: 1.15rem; font-weight: 700; margin-bottom: 14px; }
+
+  /* ===== 2) ปุ่มอารมณ์ (ปุ่มใหญ่ แตะง่าย) ===== */
+  .mood-btn {
+    width: 100%; min-height: 60px; text-align: left;
+    display: flex; align-items: center; gap: 12px;
+    background: #fff; border: 2px solid var(--line); border-radius: 14px;
+    padding: 12px 16px; margin-bottom: 10px; font-size: 1.05rem;
+  }
+  .mood-btn .emo { font-size: 1.7rem; }
+  .mood-btn.active { border-color: var(--accent); background: #eef5f4; font-weight: 500; }
+  .tip {
+    border-left: 4px solid var(--accent); background: #eef5f4;
+    border-radius: 8px; padding: 12px 14px; margin-top: 6px;
+  }
+
+  /* ===== 3) ฟอร์ม ===== */
+  .form-control, .form-select { min-height: 52px; font-size: 1.05rem; border-radius: 12px; }
+  textarea.form-control { min-height: 110px; }
+  .btn-main {
+    background: var(--accent); color: #fff; width: 100%;
+    min-height: 56px; border-radius: 14px; font-weight: 500; font-size: 1.1rem; border: 0;
+  }
+  .btn-main:active { opacity: .85; }
+  .counter { font-size: .9rem; color: var(--muted); text-align: right; }
+  .counter.over { color: var(--danger); font-weight: 700; }
+  .invalid-feedback { font-size: .95rem; }
+
+  /* ===== 4) การ์ด Ticket ===== */
+  .ticket {
+    border: 1px solid var(--line); border-radius: 14px;
+    padding: 14px; margin-bottom: 12px; background: #fff;
+  }
+  .ticket .who { font-weight: 700; }
+  .ticket .desc { margin: 6px 0 10px; word-break: break-word; }
+  .ticket .meta { color: var(--muted); font-size: .9rem; }
+  .badge-status { font-weight: 500; font-size: .9rem; padding: .5em .8em; border-radius: 999px; }
+  .st-wait { background: #fff1d6; color: #8a5a00; }
+  .st-doing { background: #dcecff; color: #14508f; }
+  .st-done { background: #dff3e4; color: #1d6b34; }
+  .urg-สูง { color: var(--danger); font-weight: 700; }
+  .btn-status { min-height: 46px; border-radius: 12px; border: 1px solid var(--accent); color: var(--accent); background: #fff; }
+
+  /* ===== 4.1) Data Privacy Guarantee (Callout สีเขียวอ่อน) ===== */
+  .privacy {
+    background: #e6f4ec; border: 1px solid #b9dcc6; border-left: 5px solid #2e8b57;
+    border-radius: 14px; padding: 14px 16px; margin-top: 12px; color: #1b4d32;
+  }
+
+  /* ===== 4.2) Knowledge Base: การ์ดบทเรียนแตะแล้วขยาย ===== */
+  .lesson { border: 1px solid var(--line); border-radius: 14px; margin-bottom: 10px; background: #fff; overflow: hidden; }
+  .lesson-head {
+    width: 100%; min-height: 64px; background: none; border: 0; text-align: left;
+    padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    font-size: 1.05rem; font-weight: 500; color: var(--ink);
+  }
+  .lesson-head .sub { display: block; font-size: .88rem; color: var(--muted); font-weight: 400; }
+  .lesson-head .chev { transition: transform .2s; font-size: 1.2rem; }
+  .lesson.open .chev { transform: rotate(180deg); }
+  .lesson-body { display: none; padding: 0 16px 16px; }
+  .lesson.open .lesson-body { display: block; }
+  .lesson-body ol, .lesson-body ul { padding-left: 1.2rem; margin-bottom: 10px; }
+  .lesson-body li { margin-bottom: 6px; }
+  .prompt-ex { background: #f1f4f3; border-radius: 10px; padding: 10px 12px; font-size: .98rem; margin-bottom: 10px; }
+  .badge-read { background: #dff3e4; color: #1d6b34; font-size: .8rem; padding: .3em .7em; border-radius: 999px; font-weight: 500; }
+  .btn-read { min-height: 46px; width: 100%; border-radius: 12px; border: 1px solid var(--accent); background: #fff; color: var(--accent); }
+  .btn-read.done { background: var(--accent); color: #fff; }
+
+  /* ===== 5) แถบเมนูล่าง (Mobile-first) ===== */
+  nav.bottom {
+    position: fixed; left: 0; right: 0; bottom: 0; background: #fff;
+    border-top: 1px solid var(--line); display: flex; z-index: 10;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  nav.bottom a {
+    flex: 1; text-align: center; padding: 14px 4px; text-decoration: none;
+    color: var(--ink); font-size: .95rem; font-weight: 500;
+  }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <header class="app-head">
+    <h1>Smart Task & Adaptive Reflection Hub</h1>
+    <p>เช็กอินความรู้สึก ขอความช่วยเหลือ และติดตามสถานะในที่เดียว</p>
+  </header>
+
+  <!-- ================= Data Privacy Guarantee (ส่วนบนสุด) ================= -->
+  <div class="privacy" role="note">
+    <strong>🔒 Data Privacy Guarantee:</strong>
+    ข้อมูลในระบบจะถูกใช้โดยทีมงานโครงการ 3 คนเพื่อการดูแลซัพพอร์ตเท่านั้น
+    และไม่มีการส่งรายงานส่วนบุคคลให้แก่ฝ่ายบริหารองค์กรแต่อย่างใด
+    สามารถเลือกใช้ชื่อแฝงได้
+  </div>
+
+  <!-- แจ้งเตือนรวม (Error / Warning / Success) -->
+  <div id="alertBox" role="alert" aria-live="polite"></div>
+
+  <!-- ================= ส่วนที่ 1: Daily Mood & Stress Check-in ================= -->
+  <section class="block" id="mood">
+    <h2>Daily Mood & Stress Check-in</h2>
+    <p class="text-secondary mb-3">วันนี้คุณรู้สึกอย่างไร?</p>
+
+    <button class="mood-btn" data-mood="green"><span class="emo">🟢</span>ปกติ / พร้อมเรียนรู้</button>
+    <button class="mood-btn" data-mood="yellow"><span class="emo">🟡</span>เริ่มสับสน</button>
+    <button class="mood-btn" data-mood="red"><span class="emo">🔴</span>ท้อแท้ / ติดขัด</button>
+
+    <div id="tipBox" class="tip d-none"></div>
+    <div id="moodSaved" class="meta text-secondary mt-2" style="font-size:.9rem"></div>
+  </section>
+
+  <!-- ================= ส่วนที่ 2: Help Request Form ================= -->
+  <section class="block" id="form">
+    <h2>Help Request Form</h2>
+
+    <!-- novalidate: ใช้ระบบตรวจสอบของเราเองเพื่อควบคุมข้อความ Error -->
+    <form id="helpForm" novalidate>
+      <div class="mb-3">
+        <label class="form-label" for="name">ชื่อ / ชื่อแฝง</label>
+        <input type="text" id="name" class="form-control" placeholder="เช่น น้องมิ้นต์" autocomplete="off">
+        <div class="invalid-feedback">กรุณากรอกชื่อหรือชื่อแฝง</div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" for="issue">เรื่องที่ติดขัด (รายละเอียดปัญหา)</label>
+        <textarea id="issue" class="form-control" placeholder="อธิบายสั้นๆ ว่าติดขัดเรื่องอะไร"></textarea>
+        <div class="counter" id="counter">0 / 200</div>
+        <div class="invalid-feedback" id="issueError">กรุณากรอกรายละเอียดปัญหา</div>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label" for="urgency">ความเร่งด่วน</label>
+        <select id="urgency" class="form-select">
+          <option value="ต่ำ">ต่ำ</option>
+          <option value="กลาง" selected>กลาง</option>
+          <option value="สูง">สูง</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn-main">ส่งคำขอความช่วยเหลือ</button>
+    </form>
+  </section>
+
+  <!-- ================= ส่วนที่ 3: Task & Ticket Dashboard ================= -->
+  <section class="block" id="dashboard">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h2 class="mb-0">Task & Ticket Dashboard</h2>
+      <button id="resetBtn" class="btn btn-sm btn-outline-secondary">ล้างข้อมูล</button>
+    </div>
+    <div id="summary" class="text-secondary mb-3" style="font-size:.95rem"></div>
+    <div id="ticketList"></div>
+  </section>
+
+  <!-- ================= ส่วนที่ 4: คลังความรู้ Micro-Learning ================= -->
+  <section class="block" id="knowledge">
+    <h2>คลังความรู้ Micro-Learning</h2>
+    <p class="text-secondary mb-2">บทเรียนสั้น 3-5 นาที แตะเพื่ออ่าน เรียนตอนไหนก็ได้</p>
+    <div id="lessonProgress" class="text-secondary mb-3" style="font-size:.95rem"></div>
+    <div id="lessonList"></div>
+  </section>
+
+</div>
+
+<!-- แถบเมนูล่าง -->
+<nav class="bottom" aria-label="เมนูหลัก">
+  <a href="#mood">😊 อารมณ์</a>
+  <a href="#form">📝 ขอช่วย</a>
+  <a href="#dashboard">📋 รายการ</a>
+  <a href="#knowledge">📚 ความรู้</a>
+</nav>
+
+<script>
+/* =====================================================================
+   ค่าคงที่และข้อมูลตั้งต้น
+   ===================================================================== */
+const MAX_LEN = 200;                         // ความยาวสูงสุดของรายละเอียดปัญหา
+const KEY_TICKETS = 'starh_tickets';         // คีย์ LocalStorage: รายการ Ticket
+const KEY_MOOD = 'starh_mood';               // คีย์ LocalStorage: อารมณ์ล่าสุด
+
+// ลำดับสถานะ (กดปุ่มแล้ววนไปสถานะถัดไป)
+const STATUSES = [
+  { label: 'รอทีมงานติดต่อ', cls: 'st-wait' },
+  { label: 'กำลังช่วยเหลือ', cls: 'st-doing' },
+  { label: 'เสร็จสิ้น',      cls: 'st-done' }
+];
+
+// Micro-Tip ด้าน Adaptability & EQ (สุ่มแสดงตามอารมณ์ที่เลือก)
+const TIPS = {
+  green: [
+    'ช่วงที่พร้อมเรียนรู้คือโอกาสดี ลองรับงานท้าทายเล็กๆ หนึ่งอย่างวันนี้',
+    'แบ่งปันสิ่งที่เรียนรู้กับเพื่อนร่วมทีม การสอนคนอื่นช่วยให้เราเข้าใจลึกขึ้น'
+  ],
+  yellow: [
+    'ลองเขียนสิ่งที่ยังไม่เข้าใจออกมาเป็นข้อๆ ปัญหาที่ชัดเจนแก้ง่ายกว่าปัญหาที่คลุมเครือ',
+    'การถามเมื่อสับสนไม่ใช่จุดอ่อน แต่เป็นทักษะการปรับตัวที่ดี'
+  ],
+  red: [
+    'หยุดพักหายใจลึกๆ 1 นาที แล้วเลือกทำเพียงขั้นตอนเล็กที่สุดก่อน',
+    'ความรู้สึกท้อเป็นเรื่องปกติ ลองส่งคำขอความช่วยเหลือด้านล่างได้เลย คุณไม่ต้องแก้คนเดียว'
+  ]
+};
+
+/* =====================================================================
+   ข้อมูล (State) + LocalStorage
+   ===================================================================== */
+let tickets = loadTickets();
+
+function loadTickets() {
+  try { return JSON.parse(localStorage.getItem(KEY_TICKETS)) || []; }
+  catch (e) { return []; }
+}
+function saveTickets() {
+  try { localStorage.setItem(KEY_TICKETS, JSON.stringify(tickets)); } catch (e) { /* ไม่มี storage: ใช้ในหน่วยความจำ */ }
+}
+
+/* =====================================================================
+   ฟังก์ชันช่วยเหลือ
+   ===================================================================== */
+const $ = (id) => document.getElementById(id);
+
+// ป้องกัน HTML injection เมื่อแสดงข้อความที่ผู้ใช้พิมพ์
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ทำให้ข้อความเปรียบเทียบได้ (ตัดช่องว่างหัวท้าย/ซ้อน และไม่สนตัวพิมพ์เล็กใหญ่)
+function normalize(s) {
+  return s.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+// แสดง Alert รวม (type: danger | warning | success)
+let alertTimer;
+function showAlert(type, msg) {
+  $('alertBox').innerHTML =
+    `<div class="alert alert-${type} mt-3 mb-0">${msg}</div>`;
+  clearTimeout(alertTimer);
+  alertTimer = setTimeout(() => { $('alertBox').innerHTML = ''; }, 5000);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* =====================================================================
+   ส่วนที่ 1: Mood Check-in
+   ===================================================================== */
+function selectMood(mood, save = true) {
+  document.querySelectorAll('.mood-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.mood === mood));
+
+  const list = TIPS[mood];
+  const tip = list[Math.floor(Math.random() * list.length)];
+  $('tipBox').classList.remove('d-none');
+  $('tipBox').innerHTML = `💡 <strong>Micro-Tip:</strong> ${tip}`;
+
+  if (save) {
+    const now = new Date().toLocaleString('th-TH');
+    try { localStorage.setItem(KEY_MOOD, JSON.stringify({ mood, time: now })); } catch (e) {}
+    $('moodSaved').textContent = `บันทึกเมื่อ ${now}`;
+  }
+}
+
+document.querySelectorAll('.mood-btn').forEach(btn =>
+  btn.addEventListener('click', () => selectMood(btn.dataset.mood)));
+
+/* =====================================================================
+   ส่วนที่ 2: Help Request Form (ตรวจสอบข้อมูล)
+   ===================================================================== */
+
+// ตัวนับตัวอักษรแบบ Real-time (Boundary: เกิน 200 จะเป็นสีแดง)
+$('issue').addEventListener('input', () => {
+  const len = $('issue').value.length;
+  $('counter').textContent = `${len} / ${MAX_LEN}`;
+  $('counter').classList.toggle('over', len > MAX_LEN);
+});
+
+// ตั้ง/ล้างสถานะ Error ของช่อง
+function setInvalid(el, isInvalid, msg) {
+  el.classList.toggle('is-invalid', isInvalid);
+  if (msg && el.nextElementSibling) {
+    const fb = el.parentElement.querySelector('.invalid-feedback');
+    if (fb) fb.textContent = msg;
+  }
+}
+
+$('helpForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+
+  const nameEl = $('name');
+  const issueEl = $('issue');
+  const name = nameEl.value.trim();
+  const issue = issueEl.value.trim();
+  const urgency = $('urgency').value;
+
+  // ล้าง Error เดิมก่อนตรวจใหม่
+  setInvalid(nameEl, false);
+  setInvalid(issueEl, false);
+
+  // --- Test Case 2: Missing Data (ชื่อหรือรายละเอียดว่าง) ---
+  let hasError = false;
+  if (!name) { setInvalid(nameEl, true, 'กรุณากรอกชื่อหรือชื่อแฝง'); hasError = true; }
+  if (!issue) { setInvalid(issueEl, true, 'กรุณากรอกรายละเอียดปัญหา'); hasError = true; }
+  if (hasError) {
+    showAlert('danger', '⚠️ ข้อมูลไม่ครบ กรุณากรอกช่องที่ไฮไลต์สีแดง');
+    return;                                   // ไม่บันทึกข้อมูล
+  }
+
+  // --- Test Case 4: Boundary (เกิน 200 ตัวอักษร) ---
+  // 200 ตัวพอดี = ผ่าน, 201 ตัวขึ้นไป = ถูกบล็อกพร้อมแจ้งเตือน
+  if (issue.length > MAX_LEN) {
+    setInvalid(issueEl, true, `ข้อความยาวเกิน ${MAX_LEN} ตัวอักษร (ปัจจุบัน ${issue.length} ตัว) กรุณาตัดให้สั้นลง`);
+    showAlert('warning', `✂️ รายละเอียดปัญหายาวเกิน ${MAX_LEN} ตัวอักษร (ตอนนี้ ${issue.length} ตัว)`);
+    return;
+  }
+
+  // --- Test Case 3: Duplicate Data (ชื่อ + รายละเอียดซ้ำกับรายการเดิม) ---
+  const isDup = tickets.some(t =>
+    normalize(t.name) === normalize(name) && normalize(t.issue) === normalize(issue));
+  if (isDup) {
+    setInvalid(issueEl, true, 'พบรายการแจ้งปัญหาซ้ำซ้อน');
+    showAlert('warning', '🔁 พบรายการแจ้งปัญหาซ้ำซ้อน');
+    return;
+  }
+
+  // --- Test Case 1: Normal Case (บันทึกสำเร็จ) ---
+  tickets.unshift({
+    id: Date.now(),
+    name, issue, urgency,
+    status: 0,                                // 0 = รอทีมงานติดต่อ
+    time: new Date().toLocaleString('th-TH')
+  });
+  saveTickets();
+  renderTickets();
+
+  $('helpForm').reset();
+  $('counter').textContent = `0 / ${MAX_LEN}`;
+  $('counter').classList.remove('over');
+  showAlert('success', '✅ ส่งคำขอเรียบร้อย ทีมงานจะติดต่อกลับโดยเร็ว');
+});
+
+// ล้างสีแดงเมื่อผู้ใช้เริ่มพิมพ์แก้ไข
+['name', 'issue'].forEach(id =>
+  $(id).addEventListener('input', () => $(id).classList.remove('is-invalid')));
+
+/* =====================================================================
+   ส่วนที่ 3: Task & Ticket Dashboard
+   ===================================================================== */
+function renderTickets() {
+  const list = $('ticketList');
+
+  // สรุปจำนวนแต่ละสถานะ
+  $('summary').textContent = tickets.length
+    ? `ทั้งหมด ${tickets.length} รายการ | ` +
+      STATUSES.map((s, i) => `${s.label} ${tickets.filter(t => t.status === i).length}`).join(' | ')
+    : '';
+
+  // Empty state
+  if (!tickets.length) {
+    list.innerHTML = '<p class="text-secondary text-center py-4 mb-0">ยังไม่มีรายการ กรอกฟอร์มด้านบนเพื่อขอความช่วยเหลือ</p>';
+    return;
+  }
+
+  list.innerHTML = tickets.map(t => {
+    const st = STATUSES[t.status];
+    const next = STATUSES[(t.status + 1) % STATUSES.length];
+    return `
+      <div class="ticket">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <span class="who">${esc(t.name)}</span>
+          <span class="badge-status ${st.cls}">${st.label}</span>
+        </div>
+        <div class="desc">${esc(t.issue)}</div>
+        <div class="meta mb-2">ความเร่งด่วน: <span class="urg-${t.urgency}">${t.urgency}</span> | ${t.time}</div>
+        <button class="btn-status w-100" data-id="${t.id}">เปลี่ยนเป็น "${next.label}"</button>
+      </div>`;
+  }).join('');
+}
+
+// กดปุ่มเปลี่ยนสถานะ (Event delegation)
+$('ticketList').addEventListener('click', (e) => {
+  const btn = e.target.closest('.btn-status');
+  if (!btn) return;
+  const t = tickets.find(x => x.id === Number(btn.dataset.id));
+  if (t) {
+    t.status = (t.status + 1) % STATUSES.length;
+    saveTickets();
+    renderTickets();
+  }
+});
+
+// ปุ่มล้างข้อมูลทั้งหมด (ใช้ระหว่างทดสอบแต่ละ Test Case)
+$('resetBtn').addEventListener('click', () => {
+  if (confirm('ต้องการล้างรายการทั้งหมดหรือไม่?')) {
+    tickets = [];
+    saveTickets();
+    renderTickets();
+  }
+});
+
+/* =====================================================================
+   ส่วนที่ 4: Knowledge Base (Micro-Learning)
+   ===================================================================== */
+const KEY_READ = 'starh_read';               // คีย์ LocalStorage: บทเรียนที่อ่านแล้ว
+
+// ข้อมูลบทเรียน (เพิ่ม/แก้บทเรียนได้ที่ Array นี้)
+// steps = ขั้นตอน, prompt = ตัวอย่าง Prompt (ไม่บังคับ), note = ข้อควรระวัง (ไม่บังคับ)
+const LESSONS = [
+  {
+    id: 'ai-summary', icon: '🤖', title: 'วิธีใช้ AI สรุปเอกสารใน 3 นาที', time: '3 นาที',
+    steps: [
+      'เปิดเอกสารและคัดลอกเฉพาะเนื้อหาที่ต้องการสรุป',
+      'บอก AI ว่าต้องการสรุปให้ใคร ยาวแค่ไหน และรูปแบบอะไร',
+      'อ่านผลสรุปเทียบกับเอกสารต้นฉบับ 1 รอบ',
+      'สั่งปรับต่อได้ เช่น "ย่อให้สั้นลงครึ่งหนึ่ง"'
+    ],
+    prompt: 'สรุปเอกสารด้านล่างเป็น 5 ข้อ ภาษาง่าย สำหรับหัวหน้าที่มีเวลาอ่าน 1 นาที',
+    note: 'ไม่ควรวางข้อมูลลับหรือข้อมูลส่วนบุคคลลงในเครื่องมือ AI สาธารณะ'
+  },
+  {
+    id: 'prompt-docs', icon: '✍️', title: 'ตัวอย่าง Prompt ช่วยงานเอกสาร', time: '5 นาที',
+    steps: [
+      'ระบุบทบาท เช่น "คุณคือผู้ช่วยงานธุรการ"',
+      'ระบุงานที่ต้องทำและบริบทให้ชัดเจน',
+      'ระบุรูปแบบผลลัพธ์ เช่น ตาราง อีเมล หรือรายการ',
+      'ขอให้ถามกลับหากข้อมูลไม่พอ'
+    ],
+    prompt: 'ช่วยร่างอีเมลสุภาพถึงลูกค้า แจ้งเลื่อนประชุมจากวันพุธเป็นวันศุกร์ ความยาวไม่เกิน 5 บรรทัด',
+    note: 'ผลลัพธ์จาก AI เป็นร่างเริ่มต้น ต้องอ่านทวนก่อนส่งเสมอ'
+  },
+  {
+    id: 'new-software', icon: '🧭', title: 'เทคนิคการปรับตัวเมื่อเจอซอฟต์แวร์ใหม่', time: '5 นาที',
+    steps: [
+      'ตั้งเป้าหมายเล็กๆ ก่อน เช่น "ทำงานเดียวให้เสร็จด้วยโปรแกรมนี้"',
+      'สำรวจเมนูหลักประมาณ 5 นาที โดยยังไม่ต้องจำทุกอย่าง',
+      'ค้นหาคู่มือสั้นหรือวิดีโอสอนเริ่มต้น (Getting Started)',
+      'จดสิ่งที่สับสนไว้ แล้วถามเพื่อนร่วมทีมหรือส่งคำขอความช่วยเหลือ'
+    ],
+    note: 'ความสับสนช่วงแรกเป็นเรื่องปกติ ไม่ได้บอกว่าคุณเรียนรู้ช้า'
+  },
+  {
+    id: 'template', icon: '⚡', title: 'ลดงานซ้ำด้วย Template และ Shortcut', time: '4 นาที',
+    steps: [
+      'หางานที่ทำซ้ำทุกสัปดาห์ เช่น รายงาน อีเมลตอบรับ',
+      'บันทึกเป็น Template เก็บไว้ในโฟลเดอร์ที่หาง่าย',
+      'เรียนรู้ Shortcut 3 อย่างที่ใช้บ่อย เช่น Ctrl+C, Ctrl+V, Ctrl+F',
+      'ทบทวนผลหลังใช้ 1 สัปดาห์ว่าประหยัดเวลาได้เท่าไร'
+    ]
+  },
+  {
+    id: 'verify-ai', icon: '🔍', title: 'ตรวจสอบคำตอบ AI ก่อนนำไปใช้', time: '5 นาที',
+    steps: [
+      'ตรวจตัวเลข ชื่อ และวันที่กับแหล่งข้อมูลจริง',
+      'ถาม AI ว่า "ข้อมูลนี้มีแหล่งอ้างอิงหรือไม่"',
+      'ระวังคำตอบที่ฟังดูมั่นใจแต่ไม่มีหลักฐาน',
+      'ให้เพื่อนร่วมงานช่วยตรวจงานสำคัญอีกรอบ'
+    ],
+    note: 'AI อาจตอบผิดได้ ผู้ใช้เป็นผู้รับผิดชอบผลงานสุดท้าย'
+  }
+];
+
+let readSet = loadRead();                    // บทเรียนที่อ่านแล้ว
+function loadRead() {
+  try { return JSON.parse(localStorage.getItem(KEY_READ)) || []; }
+  catch (e) { return []; }
+}
+
+function renderLessons(openId = null) {
+  $('lessonProgress').textContent =
+    `อ่านแล้ว ${readSet.length} จาก ${LESSONS.length} บทเรียน`;
+
+  $('lessonList').innerHTML = LESSONS.map(l => {
+    const done = readSet.includes(l.id);
+    return `
+      <div class="lesson ${l.id === openId ? 'open' : ''}" data-id="${l.id}">
+        <button class="lesson-head" aria-expanded="${l.id === openId}">
+          <span>${l.icon} ${l.title}
+            <span class="sub">⏱ ${l.time} ${done ? '<span class="badge-read ms-1">อ่านแล้ว ✓</span>' : ''}</span>
+          </span>
+          <span class="chev">⌄</span>
+        </button>
+        <div class="lesson-body">
+          <ol>${l.steps.map(s => `<li>${s}</li>`).join('')}</ol>
+          ${l.prompt ? `<div class="prompt-ex"><strong>ตัวอย่าง Prompt:</strong><br>${l.prompt}</div>` : ''}
+          ${l.note ? `<p class="text-secondary mb-3">💡 ${l.note}</p>` : ''}
+          <button class="btn-read ${done ? 'done' : ''}" data-read="${l.id}">
+            ${done ? 'อ่านแล้ว ✓ (กดเพื่อยกเลิก)' : 'ทำเครื่องหมายว่าอ่านแล้ว'}
+          </button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// แตะการ์ดเพื่อขยาย/ย่อ และกดปุ่ม "อ่านแล้ว" (Event delegation)
+$('lessonList').addEventListener('click', (e) => {
+  const readBtn = e.target.closest('.btn-read');
+  if (readBtn) {
+    const id = readBtn.dataset.read;
+    readSet = readSet.includes(id) ? readSet.filter(x => x !== id) : [...readSet, id];
+    try { localStorage.setItem(KEY_READ, JSON.stringify(readSet)); } catch (e) {}
+    renderLessons(id);                       // คงการ์ดที่เปิดอยู่ไว้
+    return;
+  }
+  const head = e.target.closest('.lesson-head');
+  if (head) {
+    const card = head.parentElement;
+    const open = card.classList.toggle('open');
+    head.setAttribute('aria-expanded', open);
+  }
+});
+
+/* =====================================================================
+   เริ่มต้นระบบ: โหลดอารมณ์ล่าสุด + แสดงรายการ
+   ===================================================================== */
+(function init() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY_MOOD));
+    if (saved && TIPS[saved.mood]) {
+      selectMood(saved.mood, false);
+      $('moodSaved').textContent = `บันทึกเมื่อ ${saved.time}`;
+    }
+  } catch (e) { /* ไม่มีข้อมูลเดิม */ }
+  renderTickets();
+  renderLessons();
+})();
+</script>
+</body>
+</html>
